@@ -4,7 +4,7 @@
 Behavior
 --------
 - First normal run: show every installed production-ready feature.
-- Later normal runs: show only feature IDs that have never been shown before.
+- Later normal runs: show newly added features and existing features whose help.html changed.
 - Shift-click/config mode: always show the full feature catalog and do
   not change the seen-state.
 
@@ -16,13 +16,14 @@ its folder name. A trailing " - Help" is removed from displayed titles.
 __title__ = "What's\nNew"
 __author__ = "Aaron"
 __doc__ = ("Shows all installed production-ready features on first run, then "
-           "only newly added features. Shift-click to see the full catalog.")
+           "newly added or improved features. Shift-click to see the full catalog.")
 
 import io
 import os
 import re
 import json
 import codecs
+import hashlib
 import tempfile
 import webbrowser
 import uuid
@@ -298,6 +299,12 @@ def parse_help_dir(root, dirpath, filenames, help_name):
     title = clean_title(raw_title) or nice_name(folder_name)
     icon_path = find_icon(dirpath, filenames)
 
+    try:
+        with open(path, "rb") as hf:
+            help_hash = hashlib.md5(hf.read()).hexdigest()
+    except Exception:
+        help_hash = u""
+
     return {
         "id": u"help:" + os.path.relpath(dirpath, root).replace("\\", "/"),
         "title": title,
@@ -305,6 +312,7 @@ def parse_help_dir(root, dirpath, filenames, help_name):
         "chip": info.get("type") or (u"Tool" if in_bundle else u"Feature"),
         "crumb": crumb_for(root, dirpath),
         "date": date,
+        "hash": help_hash,
         "link": file_uri(path),
         "icon": file_uri(icon_path) if icon_path else None,
     }
@@ -348,7 +356,7 @@ def discover(progress=None):
 # --------------------------------------------------------------------------
 # State
 # --------------------------------------------------------------------------
-STATE_VERSION = 6
+STATE_VERSION = 7
 STATE_SOURCE = u"not loaded"
 STATE_COUNT = 0
 STATE_STATUS = u"not checked"
@@ -368,6 +376,17 @@ def _normalize_seen(values):
         norm = _normalize_feature_id(key)
         if norm:
             result[norm] = True
+    return result
+
+
+def _normalize_hashes(values):
+    result = {}
+    if not isinstance(values, dict):
+        return result
+    for key, value in values.items():
+        norm = _normalize_feature_id(key)
+        if norm and value:
+            result[norm] = unicode(value).strip().lower()
     return result
 
 
@@ -394,17 +413,25 @@ LEGACY_STATE_FILE = os.path.join((os.environ.get("APPDATA") or os.path.expanduse
 
 def _state_from_payload(payload):
     if not isinstance(payload, dict):
-        return False, {}
+        return False, {}, {}
 
     initialized = bool(payload.get("initialized", False))
+    hashes = _normalize_hashes(payload.get("feature_hashes", {}))
     raw = payload.get("seen_ids")
     if isinstance(raw, list):
-        return initialized, _normalize_seen(raw)
+        return initialized, _normalize_seen(raw), hashes
 
-    # Migrate the old {"items": {...}} format.
+    # Migrate the old {"items": {...}} format. Older builds may have stored
+    # hashes as values, so preserve those when they look usable.
     raw = payload.get("items")
     if isinstance(raw, dict):
         values = raw.keys()
+        if not hashes:
+            possible = {}
+            for key, value in raw.items():
+                if isinstance(value, (str, unicode)) and value:
+                    possible[key] = value
+            hashes = _normalize_hashes(possible)
     elif isinstance(raw, list):
         values = raw
     else:
@@ -413,7 +440,7 @@ def _state_from_payload(payload):
     seen = _normalize_seen(values)
     if seen:
         initialized = True
-    return initialized, seen
+    return initialized, seen, hashes
 
 
 def _read_json_file(path):
@@ -430,8 +457,8 @@ def _read_state_file(path):
     payload = _read_json_file(path)
     if payload is None:
         return None
-    initialized, seen = _state_from_payload(payload)
-    return {"initialized": initialized, "seen": seen}
+    initialized, seen, hashes = _state_from_payload(payload)
+    return {"initialized": initialized, "seen": seen, "hashes": hashes}
 
 
 def load_state():
@@ -499,15 +526,17 @@ def _write_text_atomic(path, text):
     os.rename(temp_path, path)
 
 
-def save_state(known, initialized=True):
+def save_state(known, hashes=None, initialized=True):
     """Persist state and immediately prove that it can be read back."""
     global STATE_SOURCE, STATE_COUNT, STATE_STATUS
 
     items = sorted(set(_normalize_feature_id(key) for key in known.keys() if key))
+    normalized_hashes = _normalize_hashes(hashes or {})
     payload = {
         "version": STATE_VERSION,
         "initialized": bool(initialized),
         "seen_ids": items,
+        "feature_hashes": normalized_hashes,
         "last_run": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     _write_text_atomic(STATE_FILE, json.dumps(payload, indent=2))
@@ -524,16 +553,21 @@ def save_state(known, initialized=True):
         raise Exception("State verification failed. Expected {} feature IDs but read back {}.\n{}".format(
             len(expected), len(actual), STATE_FILE))
 
+    actual_hashes = check.get("hashes", {}) or {}
+    for key, value in normalized_hashes.items():
+        if actual_hashes.get(key) != value:
+            raise Exception("State hash verification failed for {}.\n{}".format(key, STATE_FILE))
+
     STATE_SOURCE = u"Roaming AppData"
     STATE_COUNT = len(actual)
     STATE_STATUS = u"saved + verified"
     return True
 
 
-def try_save(known, initialized=True):
+def try_save(known, hashes=None, initialized=True):
     global STATE_STATUS
     try:
-        save_state(known, initialized)
+        save_state(known, hashes, initialized)
         return True
     except Exception as ex:
         STATE_STATUS = u"SAVE FAILED: " + unicode(ex)
@@ -576,6 +610,7 @@ h3.section { margin:28px 0 10px; font-size:13px; letter-spacing:.08em;
          font-weight:700; padding:2px 8px; border-radius:99px;
          background:var(--accent); }
 .badge:hover { text-decoration:underline; }
+.badge.improved { background:var(--warn); }
 .meta { color:var(--muted); font-size:13px; margin:2px 0 8px; }
 .chip { margin-left:8px; padding:1px 8px; border:1px solid var(--line);
         border-radius:6px; font-size:12px; }
@@ -590,6 +625,8 @@ def render_card(it, status):
     badge = u""
     if status == "new":
         badge = u'<a class="badge" href="%s" title="Open help">NEW</a>' % it["link"]
+    elif status == "improved":
+        badge = u'<a class="badge improved" href="%s" title="Open revised help">IMPROVED</a>' % it["link"]
 
     meta = [pretty_date(it.get("date")), it.get("crumb")]
     meta_html = u" &middot; ".join(esc(m) for m in meta if m)
@@ -697,14 +734,15 @@ def main(show_all=False):
 
         loader.update(88, "Checking what you have already seen...")
         # Execution mode is explicit. Normal script calls main(False);
-        # config_script.py loads this module without auto-running it and then
-        # calls main(True). Never infer mode from pyRevit runtime/global state.
+        # config.py loads this module without auto-running it and then calls
+        # main(True). Never infer mode from pyRevit runtime/global state.
         show_all = bool(show_all)
         global RUN_MODE
         RUN_MODE = u"Shift catalog" if show_all else u"Normal"
         state = load_state()
         first_run = not bool(state.get("initialized"))
         known = state.get("seen", {}) or {}
+        known_hashes = state.get("hashes", {}) or {}
 
         # Normalize every discovered ID before comparing with persisted state.
         for it in items:
@@ -712,10 +750,20 @@ def main(show_all=False):
 
         ordered_items = sorted(items, key=sort_key, reverse=True)
 
+        def status_for(it):
+            fid = it["id"]
+            if fid not in known:
+                return "new"
+            old_hash = known_hashes.get(fid)
+            new_hash = (it.get("hash") or u"").lower()
+            if old_hash and new_hash and old_hash != new_hash:
+                return "improved"
+            return "seen"
+
         if show_all:
-            # Read-only catalog. Seen items are plain; unseen items still get NEW.
-            entries = [(it, "seen" if it["id"] in known else "new")
-                       for it in ordered_items]
+            # Read-only catalog. NEW and IMPROVED badges reflect current state,
+            # but Shift-click never changes what has been seen.
+            entries = [(it, status_for(it)) for it in ordered_items]
             html = build_html(
                 [("All features", entries)],
                 "All installed production-ready features (%d)" % len(items))
@@ -725,13 +773,15 @@ def main(show_all=False):
             return
 
         if first_run:
-            # First normal run intentionally shows everything, then records it all.
+            # First normal run intentionally shows everything as NEW, then records
+            # both the feature IDs and the current help-file hashes.
             entries = [(it, "new") for it in ordered_items]
             for it in items:
                 known[it["id"]] = True
+                if it.get("hash"):
+                    known_hashes[it["id"]] = it["hash"].lower()
             loader.update(94, "Saving feature history...")
-            try_save(known)
-            # Build AFTER saving so the footer reports the verified state.
+            try_save(known, known_hashes)
             html = build_html(
                 [("Installed features", entries)],
                 "Installed production-ready features (%d)" % len(items))
@@ -740,30 +790,55 @@ def main(show_all=False):
             show_html(html)
             return
 
-        fresh = [it for it in ordered_items if it["id"] not in known]
-        if fresh:
-            entries = [(it, "new") for it in fresh]
-            # Persist the full current catalog as seen, not only this run's delta.
-            for it in items:
-                known[it["id"]] = True
-            loader.update(94, "Saving feature history...")
-            try_save(known)
-            html = build_html(
-                [("New", entries)],
-                "%d new feature%s since you last checked" % (
-                    len(fresh), "" if len(fresh) == 1 else "s"))
-            loader.update(98, "Building the new feature list...")
+        new_items = []
+        improved_items = []
+        baseline_only = []
+        for it in ordered_items:
+            fid = it["id"]
+            current_hash = (it.get("hash") or u"").lower()
+            if fid not in known:
+                new_items.append(it)
+            else:
+                old_hash = known_hashes.get(fid)
+                if old_hash:
+                    if current_hash and old_hash != current_hash:
+                        improved_items.append(it)
+                else:
+                    # Migration from an older state version: the feature was
+                    # already seen, but no help hash existed yet. Establish the
+                    # baseline silently so upgrading does not mark everything
+                    # IMPROVED once.
+                    baseline_only.append(it)
+
+        # Always refresh the complete current state after determining statuses.
+        for it in items:
+            known[it["id"]] = True
+            if it.get("hash"):
+                known_hashes[it["id"]] = it["hash"].lower()
+
+        loader.update(94, "Saving feature history...")
+        try_save(known, known_hashes)
+
+        sections = []
+        if new_items:
+            sections.append(("New", [(it, "new") for it in new_items]))
+        if improved_items:
+            sections.append(("Improved", [(it, "improved") for it in improved_items]))
+
+        if new_items or improved_items:
+            pieces = []
+            if new_items:
+                pieces.append("%d new feature%s" % (len(new_items), "" if len(new_items) == 1 else "s"))
+            if improved_items:
+                pieces.append("%d improved feature%s" % (len(improved_items), "" if len(improved_items) == 1 else "s"))
+            subtitle = " and ".join(pieces) + " since you last checked"
+            html = build_html(sections, subtitle)
+            loader.update(98, "Building the feature update list...")
         else:
-            # Re-save even on an empty delta so migrated state moves into the
-            # explicit per-user file and the footer can report verification.
-            for it in items:
-                known[it["id"]] = True
-            loader.update(94, "Verifying feature history...")
-            try_save(known)
             html = build_html(
                 [], "You're all caught up",
                 message=("Nothing new",
-                         "No new features have been added since you last checked. "
+                         "No new or improved features have been added since you last checked. "
                          "Shift-click What's New to see the full feature set."))
             loader.update(98, "Nothing new found...")
 
