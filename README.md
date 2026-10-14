@@ -1,8 +1,8 @@
 # What's New
 
-**What's New** is a pyRevit utility for discovering newly added production-ready tools in a PyPiPie extension.
+**What's New** is a pyRevit utility for discovering newly added production-ready tools and previously seen tools whose `help.html` has been revised.
 
-On the first normal run it shows the complete installed feature set. After that, it shows only features that have not been shown before. A **Shift-click** opens the full installed feature catalog without changing the user's seen-feature history.
+On the first normal run it shows the complete installed feature set. After that, it shows only features that are new or whose help content has changed since the last normal run. A **Shift-click** opens the full installed feature catalog without changing the user's seen-feature history.
 
 <p align="center">
   <img src="PyPiPie_Logo.png" alt="PyPiPie Factory Tools" width="180">
@@ -11,8 +11,9 @@ On the first normal run it shows the complete installed feature set. After that,
 ## Features
 
 - Shows all production-ready features on the first normal run.
-- Shows only newly added features on later normal runs.
-- Displays **Nothing new** when there are no unseen features.
+- Shows newly added features as **NEW** on later normal runs.
+- Shows previously seen features with revised `help.html` files as **IMPROVED**.
+- Displays **Nothing new** when there are no new or improved features.
 - Shift-click always opens the complete feature catalog.
 - Shift-click does not modify the user's seen-feature state.
 - Branded WPF loading dialog with live feature name and percent complete.
@@ -20,7 +21,7 @@ On the first normal run it shows the complete installed feature set. After that,
 - Displays each feature's local icon when available.
 - Reads feature title, description, type, and date from `help.html` metadata.
 - Removes a trailing `- Help`, `– Help`, or `— Help` from displayed feature names.
-- Makes both the blue **NEW** badge and **Open help** link open the feature's local help file.
+- Makes both the blue **NEW** badge and amber **IMPROVED** badge open the feature's local help file, just like **Open help**.
 - Supports light and dark HTML themes through `prefers-color-scheme`.
 - Stores seen-feature history per Windows user.
 - Migrates older state formats when possible.
@@ -30,12 +31,12 @@ On the first normal run it shows the complete installed feature set. After that,
 
 A feature is considered **production ready** when its folder contains a `help.html` file.
 
-What's New scans the extension for those folders and builds a feature ID from each folder's path relative to the extension root. The ID, rather than the contents of `help.html`, determines whether the feature has already been shown.
+What's New scans the extension for those folders and builds a feature ID from each folder's path relative to the extension root. It also stores a content hash for each `help.html`. The feature ID determines whether a feature is new; the stored hash determines whether an already-seen feature has been improved.
 
 This means:
 
 - adding a new feature folder with `help.html` makes it appear as **NEW**;
-- changing an existing feature's help text does not make it new again;
+- changing an existing feature's `help.html` makes it appear once as **IMPROVED**;
 - deleting the user's saved state causes the next normal run to behave like a first run.
 
 ## Normal Click
@@ -47,16 +48,17 @@ A normal click runs `WhatsNew_script.py`.
 1. The loading dialog opens.
 2. What's New scans the extension for folders containing `help.html`.
 3. Every discovered production-ready feature is displayed.
-4. The complete feature-ID set is written to the user's state file.
+4. The complete feature-ID set and current help-file hashes are written to the user's state file.
 5. The written state is immediately read back and verified.
 
 ### Later normal runs
 
-1. The saved feature IDs are loaded.
+1. The saved feature IDs and help-file hashes are loaded.
 2. The extension is scanned again.
-3. Only IDs not already present in the saved state are displayed.
-4. Newly displayed IDs are added to the state.
-5. If there are no unseen IDs, the resulting page displays **Nothing new**.
+3. Unseen feature IDs are displayed as **NEW**.
+4. Previously seen IDs whose `help.html` hash changed are displayed as **IMPROVED**.
+5. The current IDs and hashes are saved as the new baseline.
+6. If there are no new or improved features, the resulting page displays **Nothing new**.
 
 ## Shift-Click: Full Catalog
 
@@ -72,6 +74,7 @@ Full-catalog mode:
 
 - shows every discovered production-ready feature;
 - marks unseen features with the **NEW** badge;
+- marks already-seen features whose help content has changed with **IMPROVED**;
 - does **not** modify the saved state;
 - is independent of runtime Shift-key detection inside the main script.
 
@@ -179,13 +182,14 @@ The generated HTML includes:
 - feature icon;
 - feature title;
 - **NEW** badge for unseen features;
+- **IMPROVED** badge for previously seen features whose `help.html` changed;
 - date;
 - extension/panel breadcrumb;
 - type chip;
 - description;
 - **Open help** link.
 
-The blue **NEW** badge is itself a hyperlink to the same help page.
+The blue **NEW** badge and amber **IMPROVED** badge are hyperlinks to the same help page.
 
 Each output page uses a fresh temporary filename so an already-open browser tab does not show stale content from a previous run.
 
@@ -207,16 +211,19 @@ A current state file resembles:
 
 ```json
 {
-  "version": 6,
+  "version": 7,
   "initialized": true,
   "seen_ids": [
     "help:pypipie.tab/tools.panel/example.pushbutton"
   ],
+  "feature_hashes": {
+    "help:pypipie.tab/tools.panel/example.pushbutton": "9b74c9897bac770ffc029102a200c5de"
+  },
   "last_run": "2026-10-14 13:00:00"
 }
 ```
 
-The script writes the state atomically and immediately reads it back to verify that the expected feature IDs persisted.
+The script writes the state atomically and immediately reads it back to verify that both the expected feature IDs and help-file hashes persisted.
 
 ### Resetting What's New
 
@@ -293,9 +300,9 @@ help.html
 
 The comparison is case-insensitive, but the feature is not considered production ready without that file.
 
-### Existing feature is not shown after its help page changes
+### Existing feature is not shown as IMPROVED after its help page changes
 
-That is expected. The current implementation tracks newly added feature IDs, not `help.html` content changes.
+Confirm the normal run has already established a hash baseline for that feature. When upgrading from an older state format that did not store hashes, the first run silently records hashes for previously seen features so the upgrade does not mark the entire catalog as **IMPROVED**. A later edit to that same `help.html` should then appear once as **IMPROVED**.
 
 ## Compatibility
 
