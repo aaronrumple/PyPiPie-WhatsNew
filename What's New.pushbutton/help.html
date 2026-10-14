@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What's New</title>
-<meta name="description" content="Shows newly added production-ready PyPiPie features and provides a Shift-click catalog of all installed features.">
+<meta name="description" content="Shows new and improved production-ready PyPiPie features and provides a Shift-click catalog of all installed features.">
 <meta name="type" content="Utility">
 <meta name="date" content="2026-10-14">
 <style>
@@ -64,6 +64,7 @@ pre code{border:0;padding:0;background:none}
 .feature-demo{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--panel2);max-width:650px}
 .feature-demo .icon{width:48px;height:48px;border:1px dashed var(--line);border-radius:7px;display:grid;place-items:center;color:var(--muted);font-size:10px;flex:0 0 48px}
 .feature-demo h4{font-size:18px;margin:0 0 2px}
+.improved{display:inline-block;background:#b36b00;color:white!important;text-decoration:none;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:7px}
 .new{display:inline-block;background:var(--accent);color:white!important;text-decoration:none;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:7px}
 .small{color:var(--muted);font-size:13px}
 table{width:100%;border-collapse:collapse;margin:12px 0 4px}
@@ -108,7 +109,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
         <ul>
           <li><strong>First normal run:</strong> shows every installed production-ready feature.</li>
           <li><strong>Later normal runs:</strong> shows only features that have never been shown before.</li>
-          <li>If there are no newly added features, the page displays <strong>Nothing new</strong>.</li>
+          <li>New features are labeled <strong>NEW</strong>; revised help files for existing features are labeled <strong>IMPROVED</strong>.</li><li>If there are no new or improved features, the page displays <strong>Nothing new</strong>.</li>
         </ul>
       </div>
       <div class="action">
@@ -134,19 +135,19 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
     <p>What's New treats a feature as <strong>production ready</strong> when its folder contains a <code>help.html</code> file. Folders without <code>help.html</code> are not included in the catalog.</p>
     <p>The feature is tracked by a normalized ID based on its folder path relative to the extension root. Once that ID has been shown during a normal run, it is considered seen for that user.</p>
 
-    <div class="note"><strong>Important:</strong> editing an existing feature's <code>help.html</code> does not make that feature new again. The current implementation tracks newly added feature IDs, not help-file content changes.</div>
+    <div class="note"><strong>Improved features:</strong> editing an existing feature's <code>help.html</code> does not make it NEW again. Instead, a changed help-file content hash causes that feature to appear once as <strong>IMPROVED</strong>.</div>
 
     <h3>Feature card</h3>
     <div class="feature-demo">
       <div class="icon">64×64<br>icon</div>
       <div>
-        <h4>Example Feature <a href="#" onclick="return false" class="new">NEW</a></h4>
+        <h4>Example Feature <a href="#" onclick="return false" class="new">NEW</a> <a href="#" onclick="return false" class="improved">IMPROVED</a></h4>
         <div class="small">Oct 14, 2026 &middot; PyPiPie &rsaquo; Tools <span class="pill">Tool</span></div>
         <p>A one-line description can be read from the feature's help metadata.</p>
         <a href="#" onclick="return false">Open help</a>
       </div>
     </div>
-    <p class="small">The blue <strong>NEW</strong> badge and the <strong>Open help</strong> link both open that feature's local help file.</p>
+    <p class="small">The blue <strong>NEW</strong> badge, amber <strong>IMPROVED</strong> badge, and the <strong>Open help</strong> link all open that feature's local help file.</p>
   </section>
 
   <section id="loading">
@@ -196,7 +197,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
 
   <section id="state">
     <h2>Feature history</h2>
-    <p>Normal runs keep a per-user list of feature IDs that have already been displayed. The current state file is:</p>
+    <p>Normal runs keep a per-user list of feature IDs plus a content hash for each feature's <code>help.html</code>. The current state file is:</p>
     <pre><code>%APPDATA%\PyPiPie\WhatsNew\state.json</code></pre>
     <p>The file contains an initialization flag, the normalized feature IDs already seen by that user, and the last-run time. Writes are performed through a temporary file and then verified by reading the saved data back.</p>
 
@@ -204,7 +205,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
     <ul>
       <li>The first successful normal run records all currently discovered features.</li>
       <li>A later normal run shows only IDs not present in the saved history.</li>
-      <li>A normal run with no new IDs shows <strong>Nothing new</strong>.</li>
+      <li>A previously unseen feature ID is shown as <strong>NEW</strong>.</li><li>A previously seen feature whose stored help hash changed is shown as <strong>IMPROVED</strong>.</li><li>A normal run with no new or improved features shows <strong>Nothing new</strong>.</li>
       <li>Shift-click is read-only and does not update the state file.</li>
       <li>Older state formats are treated as migration sources when present.</li>
     </ul>
@@ -250,7 +251,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
     <h2>Limitations</h2>
     <ul>
       <li>Feature readiness is determined solely by the presence of <code>help.html</code>.</li>
-      <li>The current notification logic detects newly added feature IDs; it does not announce revisions to an existing feature.</li>
+      <li>The notification logic detects both newly added feature IDs and content changes to existing <code>help.html</code> files.</li><li>When upgrading from an older state file with no stored hashes, existing features are silently baselined once so the whole catalog is not incorrectly marked IMPROVED.</li>
       <li>The tool scans its containing extension and any additional roots explicitly added in <code>EXTRA_ROOTS</code>.</li>
       <li>Generated catalog pages are temporary local HTML files. Each run uses a unique filename so an already-open browser tab cannot display stale results.</li>
       <li>The What's New command folder itself is excluded from discovery so this help page does not cause the utility to list itself.</li>
