@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's New</title>
+<meta name="description" content="Shows newly added production-ready PyPiPie features and provides a Shift-click catalog of all installed features.">
+<meta name="type" content="Utility">
+<meta name="date" content="2026-10-14">
+<style>
+:root{
+  --bg:#f4f6f9;--panel:#ffffff;--panel2:#eef2f6;--ink:#1d2733;--muted:#687584;
+  --accent:#0878d1;--accent2:#005a9e;--line:#dce3ea;--good:#18794e;--warn:#9a6700;
+  --code:#eef2f6;--shadow:0 8px 28px rgba(23,38,55,.08)
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#14181d;--panel:#1d232a;--panel2:#242c34;--ink:#edf2f7;--muted:#9aa7b4;
+    --accent:#4aa3ff;--accent2:#78baff;--line:#303a44;--good:#62c693;--warn:#f0b35b;
+    --code:#11161b;--shadow:0 8px 28px rgba(0,0,0,.24)
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.58 "Segoe UI",Arial,sans-serif}
+a{color:var(--accent)}
+.wrap{max-width:1000px;margin:auto;padding:28px 22px 60px}
+.hero{display:flex;align-items:center;gap:22px;padding:24px 26px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.hero img{width:112px;max-height:130px;object-fit:contain;flex:0 0 auto}
+h1{font-size:34px;line-height:1.15;margin:0 0 6px}
+.subtitle{margin:0;color:var(--muted);font-size:16px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pill{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--muted);background:var(--panel2)}
+nav{margin:20px 0;display:flex;flex-wrap:wrap;gap:8px}
+nav a{text-decoration:none;border:1px solid var(--line);background:var(--panel);padding:7px 11px;border-radius:8px}
+section{margin-top:24px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px}
+h2{font-size:22px;margin:0 0 12px}
+h3{font-size:16px;margin:20px 0 7px}
+p{margin:8px 0 12px}
+ul,ol{margin:8px 0 14px;padding-left:24px}
+li{margin:5px 0}
+strong{font-weight:650}
+.note,.tip,.warn{border-left:4px solid var(--accent);background:var(--panel2);padding:12px 14px;border-radius:0 8px 8px 0;margin:14px 0}
+.tip{border-left-color:var(--good)}
+.warn{border-left-color:var(--warn)}
+code{font-family:Consolas,"Courier New",monospace;background:var(--code);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+pre{overflow:auto;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:14px}
+pre code{border:0;padding:0;background:none}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.action{border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--panel2)}
+.action h3{margin:0 0 6px;font-size:17px}
+.kbd{display:inline-block;font-family:Consolas,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--panel)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.step{position:relative;border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--panel2)}
+.step b{display:block;color:var(--accent);margin-bottom:4px}
+.demo-window{max-width:560px;margin:18px auto;background:#2d2d30;color:#fff;border:2px solid #007acc;border-radius:15px;padding:20px 28px 24px;text-align:center;box-shadow:var(--shadow)}
+.demo-window img{width:96px;max-height:100px;object-fit:contain}
+.demo-window .factory{font-size:22px;font-weight:700;margin:7px 0 2px}
+.demo-window .building{color:#aaa;margin-bottom:8px}
+.demo-window .status{color:#ddd;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track{width:100%;height:10px;background:#3e3e42;margin:12px 0 4px;overflow:hidden}
+.track span{display:block;width:68%;height:100%;background:#007acc}
+.percent{text-align:right;color:#aaa;font-size:12px}
+.feature-demo{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--panel2);max-width:650px}
+.feature-demo .icon{width:48px;height:48px;border:1px dashed var(--line);border-radius:7px;display:grid;place-items:center;color:var(--muted);font-size:10px;flex:0 0 48px}
+.feature-demo h4{font-size:18px;margin:0 0 2px}
+.new{display:inline-block;background:var(--accent);color:white!important;text-decoration:none;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:7px}
+.small{color:var(--muted);font-size:13px}
+table{width:100%;border-collapse:collapse;margin:12px 0 4px}
+th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:9px 10px}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+@media(max-width:720px){.hero{align-items:flex-start}.hero img{width:82px}.grid2,.flow{grid-template-columns:1fr}.wrap{padding:18px 12px 44px}section{padding:18px}.hero{padding:18px}h1{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <img src="PyPiPie_Logo.png" alt="PyPiPie logo">
+    <div>
+      <h1>What's New</h1>
+      <p class="subtitle">PyPiPie Factory Tools feature discovery and release-notification utility.</p>
+      <div class="badges">
+        <span class="pill">pyRevit</span>
+        <span class="pill">IronPython 2.7 compatible</span>
+        <span class="pill">Per-user history</span>
+        <span class="pill">Shift-click full catalog</span>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <a href="#use">Using the tool</a>
+    <a href="#behavior">What it shows</a>
+    <a href="#loading">Loading screen</a>
+    <a href="#feature-data">Feature metadata</a>
+    <a href="#state">Feature history</a>
+    <a href="#files">Bundle files</a>
+    <a href="#troubleshooting">Troubleshooting</a>
+  </nav>
+
+  <section id="use">
+    <h2>Using What's New</h2>
+    <div class="grid2">
+      <div class="action">
+        <h3>Normal click</h3>
+        <p>Use a normal click when you want to see what has been added since the last time you checked.</p>
+        <ul>
+          <li><strong>First normal run:</strong> shows every installed production-ready feature.</li>
+          <li><strong>Later normal runs:</strong> shows only features that have never been shown before.</li>
+          <li>If there are no newly added features, the page displays <strong>Nothing new</strong>.</li>
+        </ul>
+      </div>
+      <div class="action">
+        <h3><span class="kbd">Shift</span> + click</h3>
+        <p>Use Shift-click whenever you want to browse the complete installed feature catalog.</p>
+        <ul>
+          <li>Always shows the full feature set.</li>
+          <li>Does <strong>not</strong> change which features have been recorded as seen.</li>
+          <li>Runs through pyRevit's optional <code>config.py</code> action.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="step"><b>1. Discover</b>Find folders containing <code>help.html</code>.</div>
+      <div class="step"><b>2. Compare</b>Compare feature IDs with this user's saved history.</div>
+      <div class="step"><b>3. Display</b>Open a fresh HTML page containing only the appropriate results.</div>
+    </div>
+  </section>
+
+  <section id="behavior">
+    <h2>What counts as a feature?</h2>
+    <p>What's New treats a feature as <strong>production ready</strong> when its folder contains a <code>help.html</code> file. Folders without <code>help.html</code> are not included in the catalog.</p>
+    <p>The feature is tracked by a normalized ID based on its folder path relative to the extension root. Once that ID has been shown during a normal run, it is considered seen for that user.</p>
+
+    <div class="note"><strong>Important:</strong> editing an existing feature's <code>help.html</code> does not make that feature new again. The current implementation tracks newly added feature IDs, not help-file content changes.</div>
+
+    <h3>Feature card</h3>
+    <div class="feature-demo">
+      <div class="icon">64×64<br>icon</div>
+      <div>
+        <h4>Example Feature <a href="#" onclick="return false" class="new">NEW</a></h4>
+        <div class="small">Oct 14, 2026 &middot; PyPiPie &rsaquo; Tools <span class="pill">Tool</span></div>
+        <p>A one-line description can be read from the feature's help metadata.</p>
+        <a href="#" onclick="return false">Open help</a>
+      </div>
+    </div>
+    <p class="small">The blue <strong>NEW</strong> badge and the <strong>Open help</strong> link both open that feature's local help file.</p>
+  </section>
+
+  <section id="loading">
+    <h2>Loading screen</h2>
+    <p>While the extension is scanned, What's New displays the branded <code>Welcome.xaml</code> window. The dialog is modeless so its progress display can update while discovery continues.</p>
+
+    <div class="demo-window" aria-label="Loading window example">
+      <img src="PyPiPie_Logo.png" alt="PyPiPie logo">
+      <div class="factory">PyPiPie Factory Tools</div>
+      <div class="building">Building What's New...</div>
+      <div class="status">Loading Example Feature...</div>
+      <div class="track"><span></span></div>
+      <div class="percent">68%</div>
+    </div>
+
+    <p>The status changes as the tool finds the extension root, indexes feature folders, reads feature metadata and icons, checks saved history, saves the updated history when appropriate, and builds the resulting HTML.</p>
+  </section>
+
+  <section id="feature-data">
+    <h2>Feature names, descriptions, dates, and icons</h2>
+    <p>Each feature's display information comes from its own <code>help.html</code> and bundle folder.</p>
+
+    <table>
+      <thead><tr><th>Display item</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Feature name</td><td><code>&lt;title&gt;</code> from <code>help.html</code>; otherwise the folder name.</td></tr>
+        <tr><td>Description</td><td><code>&lt;meta name="description" ...&gt;</code></td></tr>
+        <tr><td>Type chip</td><td><code>&lt;meta name="type" ...&gt;</code>; otherwise <strong>Tool</strong> for supported button bundles or <strong>Feature</strong> for other folders.</td></tr>
+        <tr><td>Date</td><td><code>&lt;meta name="date" content="YYYY-MM-DD"&gt;</code>; otherwise the help file's modified date.</td></tr>
+        <tr><td>Feature icon</td><td>First matching supported icon file in the same feature folder.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Recommended metadata</h3>
+<pre><code>&lt;title&gt;Door Parameter Updater&lt;/title&gt;
+&lt;meta name="description" content="Automatically updates configured door parameters by phase."&gt;
+&lt;meta name="type" content="Updater"&gt;
+&lt;meta name="date" content="2026-10-14"&gt;</code></pre>
+
+    <p>If a title ends with <code> - Help</code>, <code> – Help</code>, or <code> — Help</code>, that suffix is removed in What's New so the card displays only the feature name.</p>
+
+    <h3>Supported feature icon names</h3>
+    <p>The feature folder is checked in this order:</p>
+    <p><code>icon.png</code>, <code>icon.dark.png</code>, <code>icon.svg</code>, <code>icon.jpg</code>, <code>icon.jpeg</code>.</p>
+    <div class="tip">PyPiPie feature icons are typically created at <strong>64×64 px</strong>. What's New displays them at 48×48 px on each feature card.</div>
+  </section>
+
+  <section id="state">
+    <h2>Feature history</h2>
+    <p>Normal runs keep a per-user list of feature IDs that have already been displayed. The current state file is:</p>
+    <pre><code>%APPDATA%\PyPiPie\WhatsNew\state.json</code></pre>
+    <p>The file contains an initialization flag, the normalized feature IDs already seen by that user, and the last-run time. Writes are performed through a temporary file and then verified by reading the saved data back.</p>
+
+    <h3>State rules</h3>
+    <ul>
+      <li>The first successful normal run records all currently discovered features.</li>
+      <li>A later normal run shows only IDs not present in the saved history.</li>
+      <li>A normal run with no new IDs shows <strong>Nothing new</strong>.</li>
+      <li>Shift-click is read-only and does not update the state file.</li>
+      <li>Older state formats are treated as migration sources when present.</li>
+    </ul>
+
+    <div class="warn"><strong>Resetting What's New:</strong> deleting the user's <code>state.json</code> makes the next normal execution behave as a first run and show the entire installed feature set again.</div>
+  </section>
+
+  <section id="files">
+    <h2>What's New pushbutton bundle</h2>
+    <p>The command depends on pyRevit's normal script/config separation. Keep the main script and Shift-click configuration script distinct.</p>
+<pre><code>What's New.pushbutton\
+    WhatsNew_script.py     # normal click / main command
+    config.py              # Shift-click action
+    Welcome.xaml           # loading dialog
+    PyPiPie_Logo.png       # loading + output branding
+    icon.png               # pyRevit ribbon icon, if used
+    bundle.yaml            # bundle metadata, if used
+    help.html              # this help page</code></pre>
+
+    <div class="note"><strong>Do not add another <code>*script.py</code> command file to this bundle.</strong> pyRevit selects a matching script as the bundle's main command; competing script filenames can cause the wrong file to execute. The optional Shift-click action belongs in <code>config.py</code>.</div>
+
+    <p><code>config.py</code> loads the shared implementation from <code>WhatsNew_script.py</code> without allowing its normal auto-run, then explicitly calls <code>main(True)</code>. A normal pyRevit execution of <code>WhatsNew_script.py</code> calls <code>main(False)</code>.</p>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>Troubleshooting</h2>
+    <table>
+      <thead><tr><th>Symptom</th><th>Check</th></tr></thead>
+      <tbody>
+        <tr><td>Every normal click shows the full catalog.</td><td>Confirm the bundle contains one main <code>*script.py</code> file and the Shift-click file is named <code>config.py</code>. Reload pyRevit after changing bundle filenames.</td></tr>
+        <tr><td>Footer says <strong>Mode: Shift catalog</strong> on a normal click.</td><td>The config action is being executed as the main command. Check the bundle filenames first.</td></tr>
+        <tr><td>Second normal run still shows everything.</td><td>Check that <code>%APPDATA%\PyPiPie\WhatsNew\state.json</code> exists and that the generated footer reports a nonzero seen count and a successful state save/verification.</td></tr>
+        <tr><td>No loading dialog.</td><td>Confirm <code>Welcome.xaml</code> is beside the main script and includes <code>StatusText</code>, <code>PercentText</code>, <code>LoadProgress</code>, and <code>LogoImage</code>.</td></tr>
+        <tr><td>Loading dialog has no PyPiPie branding.</td><td>Confirm <code>PyPiPie_Logo.png</code> is in the command folder. The script can fall back to local button icon files if the branding image is unavailable.</td></tr>
+        <tr><td>A feature is missing.</td><td>Confirm that feature has its own <code>help.html</code>. What's New intentionally does not list folders without one.</td></tr>
+        <tr><td>A feature name includes “Help”.</td><td>Only a trailing dash + “Help” is automatically removed. Review the feature's <code>&lt;title&gt;</code> value.</td></tr>
+        <tr><td>Feature icon is missing.</td><td>Use one of the supported icon filenames in the same folder as that feature's <code>help.html</code>.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Limitations</h2>
+    <ul>
+      <li>Feature readiness is determined solely by the presence of <code>help.html</code>.</li>
+      <li>The current notification logic detects newly added feature IDs; it does not announce revisions to an existing feature.</li>
+      <li>The tool scans its containing extension and any additional roots explicitly added in <code>EXTRA_ROOTS</code>.</li>
+      <li>Generated catalog pages are temporary local HTML files. Each run uses a unique filename so an already-open browser tab cannot display stale results.</li>
+      <li>The What's New command folder itself is excluded from discovery so this help page does not cause the utility to list itself.</li>
+    </ul>
+  </section>
+
+  <footer>PyPiPie Factory Tools &middot; What's New Help &middot; Updated October 14, 2026</footer>
+</div>
+</body>
+</html>
